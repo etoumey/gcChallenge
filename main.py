@@ -106,10 +106,15 @@ def getSteps(browser, challengeDetails):
 	return steps
 
 
-def databaseInit():
+def databaseInit(challengeDetails):
 	connection = sqlite3.connect('stepChallenge.db')
 	# Basic create if doesn't already exist logic 
-	sqlCreateTable = """ CREATE TABLE IF NOT EXISTS steps (date text NOT NULL, name text, steps real ); """
+	middleString = ''
+	for people in challengeDetails.participants:
+		middleString = middleString + ' ' + people.replace(" ","") + ' text, '
+
+
+	sqlCreateTable = 'CREATE TABLE IF NOT EXISTS steps (date text NOT NULL,' + middleString + ' PRIMARY KEY (date) );'	
 	cursor = connection.cursor()
 	cursor.execute(sqlCreateTable)
 	return connection
@@ -117,13 +122,24 @@ def databaseInit():
 
 def updateDatabase(db, steps, challengeDetails):
 	cursor = db.cursor()
-	timestamp = datetime.datetime.now()
-	index = 0
+
+	middleString = ''
+	endString = '?, '
 	for people in challengeDetails.participants:
-		sqlUpdate = """ INSERT INTO steps(date, name, steps) VALUES(?, ?, ?) """ 
-		cursor.execute(sqlUpdate, (timestamp, people, steps[index]))
-		index = index+1
+		if people != challengeDetails.participants[len(challengeDetails.participants)-1]:
+			middleString = middleString + ' ' + people.replace(" ","") + ', '
+			endString = endString + '?, '
+		else:
+			middleString = middleString + ' ' + people.replace(" ","") 
+			endString = endString + '? '
+
+
+	timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+	steps.insert(0, timestamp)
+	sqlUpdate = 'INSERT INTO steps(date, ' + middleString + ' ) VALUES(' + endString + ') '
+	cursor.execute(sqlUpdate,  steps)
 	db.commit()
+
 
 
 cred = queryCredentials()
@@ -134,7 +150,7 @@ browser.get(challengeDetails.url)
 steps = getSteps(browser, challengeDetails)
 browser.quit()
 
-db = databaseInit()
+db = databaseInit(challengeDetails)
 updateDatabase(db, steps, challengeDetails)
 db.close()
 
