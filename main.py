@@ -41,7 +41,7 @@ def browserInit():
 
 	#Setup browser as headless
 	opts = Options()
-	opts.headless = False
+	opts.headless = True
 
 	# Instantiate a Firefox browser object with the above-specified profile settings
 	print("Browser preferences configured")
@@ -109,7 +109,7 @@ def getSteps(browser, challengeDetails):
 def databaseInit():
 	connection = sqlite3.connect('stepChallenge.db')
 	# Basic create if doesn't already exist logic 
-	sqlCreateTable = """ CREATE TABLE IF NOT EXISTS steps (date text NOT NULL, name text, steps real, PRIMARY KEY (date) ); """
+	sqlCreateTable = """ CREATE TABLE IF NOT EXISTS steps (date text NOT NULL, name text, steps real ); """
 	cursor = connection.cursor()
 	cursor.execute(sqlCreateTable)
 	return connection
@@ -120,9 +120,11 @@ def updateDatabase(db, steps, challengeDetails):
 	timestamp = datetime.datetime.now()
 	index = 0
 	for people in challengeDetails.participants:
-		sqlUpdate = """ INSERT INTO steps(%s, %s, %d) VALUES(?, ?, ?)""" % timestamp, people, steps[index]
-		cursor.execute(sqlUpdate)
+		sqlUpdate = """ INSERT INTO steps(date, name, steps) VALUES(?, ?, ?) """ 
+		cursor.execute(sqlUpdate, (timestamp, people, steps[index]))
 		index = index+1
+	db.commit()
+
 
 cred = queryCredentials()
 challengeDetails = getUserPreferences()
@@ -134,5 +136,5 @@ browser.quit()
 
 db = databaseInit()
 updateDatabase(db, steps, challengeDetails)
-
+db.close()
 
